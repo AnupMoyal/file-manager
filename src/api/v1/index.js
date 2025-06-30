@@ -1,10 +1,12 @@
 import { Router } from 'express';
-import folderRoutes from './routes/folder.routes.js'; // ✅ correct import
+import folderRoutes from './routes/folder.routes.js';
+import fileRoutes from './routes/file.routes.js'; // ✅ correct import
 
 const router = Router();
 
 // ✅ All folder APIs under /v1/folders
 router.use('/folders', folderRoutes);
+router.use('/files', fileRoutes);
 
 export default router;
      

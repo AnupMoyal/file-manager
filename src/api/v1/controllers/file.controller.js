@@ -1,5 +1,4 @@
 import File from "../models/file.model.js";
-
 // 1. Folder data stats (summary)
 export const getFolderData = async (req, res) => {
   try {
