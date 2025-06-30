@@ -47,6 +47,7 @@ router.post('/upload', singleFileUpload, uploadSingleFile);
 
 
 router.get('/search/advanced', advancedFileSearch);
+
 router.get("/folder-data", getFolderData);
 router.get("/recent-activity", getRecentActivity);
 

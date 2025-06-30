@@ -146,3 +146,11 @@ export {
     onError,
     isValidObjectId
 }
+export const getFileCategory = (mimetype = '', extension = '') => {
+  if (mimetype.startsWith('video/')) return 'Videos';
+  if (mimetype.startsWith('audio/')) return 'Audios';
+  if (['application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(mimetype)) return 'Document';
+  if (['.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(extension) || mimetype.includes('spreadsheet')) return 'Excel Sheet';
+  if (mimetype.startsWith('image/')) return 'Images';
+  return 'Others';
+};
