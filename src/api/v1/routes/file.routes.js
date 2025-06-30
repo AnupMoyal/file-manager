@@ -1,9 +1,9 @@
-import express from "express";
-import { getFolderData, getRecentActivity } from "../controllers/file.controller.js";
+// import express from "express";
+// import { getFolderData, getRecentActivity } from "../controllers/file.controller.js";
 
-const router = express.Router();
+// const router = express.Router();
 
-router.get("/folder-data", getFolderData);
-router.get("/recent-activity", getRecentActivity);
+// router.get("/folder-data", getFolderData);
+// router.get("/recent-activity", getRecentActivity);
 
-export default router;
+// export default router;

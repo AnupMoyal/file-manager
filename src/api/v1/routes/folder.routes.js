@@ -6,6 +6,9 @@ import {
   uploadSingleFile,
 
   advancedFileSearch,
+ getFolderData, 
+ getRecentActivity 
+
 // recentFilesController,
   
   
@@ -44,6 +47,8 @@ router.post('/upload', singleFileUpload, uploadSingleFile);
 
 
 router.get('/search/advanced', advancedFileSearch);
+router.get("/folder-data", getFolderData);
+router.get("/recent-activity", getRecentActivity);
 
 // router.get('/recent-activity', verifyEmployeeToken, recentFilesController);
 
