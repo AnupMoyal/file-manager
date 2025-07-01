@@ -271,11 +271,12 @@ export {
 
 
 // ✅ GET /v1/files/folder-data
+// NEW FUNCTION for TOP SUMMARY — ignore folder filtering
 export const getFolderData = async (req, res) => {
   try {
     const { parentId } = req.query;
 
-    const filter = parentId ? { parentId } : {};
+    const filter = parentId ? { parentId } : { parentId: null }; // root folder ke liye
 
     const files = await File.find(filter);
 
@@ -310,37 +311,49 @@ export const getFolderData = async (req, res) => {
         key,
         {
           count: value.count,
-          size: `${formatSize(value.size)} MB`,
+          sizeMB: `${formatSize(value.size)} MB`,
         },
       ])
     );
 
+    const quotaMB = 1024 * 30;
+    const percentUsed = ((totalUsed / (1024 * 1024)) / quotaMB * 100).toFixed(2);
+
     res.status(200).json({
+      status: true,
       stats: formatted,
       totalUsedMB: formatSize(totalUsed),
-      totalLimitMB: 1024 * 30, // 30GB Limit
+      quotaMB,
+      percentUsed: `${percentUsed}%`
     });
   } catch (err) {
-    res.status(500).json({ message: "Error in folder data", err });
+    res.status(500).json({ message: "Error in summary", err });
   }
 };
+
+
 
 // ✅ GET /v1/files/recent-activity
 export const getRecentActivity = async (req, res) => {
   try {
     const { parentId } = req.query;
 
-    const filter = parentId ? { parentId } : {};
+    const filter = parentId ? { parentId } : { parentId: null };
 
     const recentFiles = await File.find(filter)
       .sort({ createdAt: -1 })
       .limit(10);
 
-    res.status(200).json({ files: recentFiles });
+    res.status(200).json({
+      status: true,
+      files: recentFiles
+    });
   } catch (err) {
-    res.status(500).json({ message: "Error in recent activity", err });
+    res.status(500).json({ message: "Error in recent files", err });
   }
 };
+
+
 
 
 
