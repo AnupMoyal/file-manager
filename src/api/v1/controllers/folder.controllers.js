@@ -322,14 +322,15 @@ export const getFolderData= async (req, res) => {
       categories[category].size += size;
     });
 
-    const formatSize = (bytes) => (bytes / 1024 / 1024).toFixed(2); // MB
+    const formatSize = (bytes) => (bytes / 1024 / 1024 / 1024).toFixed(2); // GB
+
 
     const formatted = Object.fromEntries(
       Object.entries(categories).map(([key, value]) => [
         key,
         {
           count: value.count,
-          sizeMB: `${formatSize(value.size)} MB`,
+          sizeMB: `${formatSize(value.size)} GB`,
         },
       ])
     );
