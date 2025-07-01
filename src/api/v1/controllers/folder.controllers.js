@@ -108,7 +108,7 @@
 
 
 import File from "../models/file.model.js";
-
+import mongoose from 'mongoose';
 import { badRequest, success, unknownError } from "../formatters/globalResponse.js";
 import {
   fileShare,
@@ -272,11 +272,30 @@ export {
 
 // ✅ GET /v1/files/folder-data
 // NEW FUNCTION for TOP SUMMARY — ignore folder filtering
+
+
+// 🔁 Detect category from mimetype
+const getCategoryFromMimetype = (mimetype) => {
+  if (!mimetype) return "other";
+  if (mimetype.startsWith("video")) return "video";
+  if (mimetype.startsWith("image")) return "image";
+  if (mimetype.startsWith("audio")) return "audio";
+  if (mimetype === "application/pdf") return "document";
+  if (
+    mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mimetype === "application/vnd.ms-excel"
+  ) return "excel";
+  return "other";
+};
+
+// ✅ GET /v1/files/top-summary?parentId=optional
 export const getFolderData = async (req, res) => {
   try {
     const { parentId } = req.query;
 
-    const filter = parentId ? { parentId } : { parentId: null }; // root folder ke liye
+    const filter = parentId
+      ? { parentId: new mongoose.Types.ObjectId(parentId) }
+      : { parentId: null };
 
     const files = await File.find(filter);
 
@@ -292,12 +311,14 @@ export const getFolderData = async (req, res) => {
     let totalUsed = 0;
 
     files.forEach(file => {
-      const size = file.sizeInBytes || 0;
+      const size = file.sizeInBytes || file.size || 0;
       totalUsed += size;
 
-      if (categories[file.type]) {
-        categories[file.type].count++;
-        categories[file.type].size += size;
+      const category = getCategoryFromMimetype(file.mimetype);
+
+      if (categories[category]) {
+        categories[category].count++;
+        categories[category].size += size;
       } else {
         categories.other.count++;
         categories.other.size += size;
@@ -327,9 +348,30 @@ export const getFolderData = async (req, res) => {
       percentUsed: `${percentUsed}%`
     });
   } catch (err) {
+    console.error("Summary Error:", err);
     res.status(500).json({ message: "Error in summary", err });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
