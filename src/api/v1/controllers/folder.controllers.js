@@ -292,7 +292,7 @@ const getCategoryFromMimetype = (mimetype) => {
 };
 
 // 🧠 Top summary controller
-export const getFolderData= async (req, res) => {
+export const getFolderData = async (req, res) => {
   try {
     const { parentId } = req.query;
 
@@ -318,34 +318,41 @@ export const getFolderData= async (req, res) => {
       totalUsed += size;
 
       const category = getCategoryFromMimetype(file.mimetype);
-      categories[category].count++;
-      categories[category].size += size;
+      if (categories[category]) {
+        categories[category].count++;
+        categories[category].size += size;
+      } else {
+        categories.other.count++;
+        categories.other.size += size;
+      }
     });
 
-    const formatSize = (bytes) => (bytes / 1024 / 1024).toFixed(2); // MB
+    // 🧮 Convert bytes to GB
+    const formatSizeGB = (bytes) => (bytes / 1024 / 1024 / 1024).toFixed(2);
 
     const formatted = Object.fromEntries(
       Object.entries(categories).map(([key, value]) => [
         key,
         {
           count: value.count,
-          sizeMB: `${formatSize(value.size)} MB`,
+          sizeGB: `${formatSizeGB(value.size)} GB`,
         },
       ])
     );
 
-    const quotaMB = 1024 * 30; // 30 GB
-    const percentUsed = ((totalUsed / (1024 * 1024)) / quotaMB * 100).toFixed(2);
+    const totalUsedGB = formatSizeGB(totalUsed);
+    const quotaGB = 30;
+    const percentUsed = ((totalUsedGB / quotaGB) * 100).toFixed(2);
 
     res.status(200).json({
       status: true,
       stats: formatted,
-      totalUsedMB: formatSize(totalUsed),
-      quotaMB,
+      totalUsedGB,
+      quotaGB,
       percentUsed: `${percentUsed}%`,
     });
   } catch (err) {
-    console.error("Summary Error:", err);
+    console.error("🔥 Summary Error:", err);
     res.status(500).json({ message: "Error in summary", err });
   }
 };
@@ -378,9 +385,10 @@ export const getRecentActivity = async (req, res) => {
   try {
     const { parentId } = req.query;
 
-    const filter = parentId
-      ? { parentId: new mongoose.Types.ObjectId(parentId), type: "file" }
-      : { type: "file" };
+    const filter = {
+      type: "file", // ✅ Always filter files
+      ...(parentId && { parentId: new mongoose.Types.ObjectId(parentId) })
+    };
 
     const recentFiles = await Folder.find(filter)
       .sort({ createdAt: -1 })
@@ -391,7 +399,7 @@ export const getRecentActivity = async (req, res) => {
       files: recentFiles
     });
   } catch (err) {
-    console.error("🔥 Error in getRecentActivity:", err); // Add this line for debugging
+    console.error("🔥 Error in getRecentActivity:", err);
     res.status(500).json({ message: "Error in recent files", err });
   }
 };
