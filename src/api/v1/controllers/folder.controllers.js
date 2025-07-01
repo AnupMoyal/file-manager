@@ -378,9 +378,11 @@ export const getRecentActivity = async (req, res) => {
   try {
     const { parentId } = req.query;
 
-    const filter = parentId ? { parentId } : { parentId: null };
+    const filter = parentId
+      ? { parentId: new mongoose.Types.ObjectId(parentId), type: "file" }
+      : { type: "file" };
 
-    const recentFiles = await File.find(filter)
+    const recentFiles = await Folder.find(filter)
       .sort({ createdAt: -1 })
       .limit(10);
 
@@ -389,6 +391,7 @@ export const getRecentActivity = async (req, res) => {
       files: recentFiles
     });
   } catch (err) {
+    console.error("🔥 Error in getRecentActivity:", err); // Add this line for debugging
     res.status(500).json({ message: "Error in recent files", err });
   }
 };
