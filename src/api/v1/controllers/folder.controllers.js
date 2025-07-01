@@ -106,8 +106,8 @@
 
 
 
+import { Folder } from '../models/folder.model.js';
 
-import File from "../models/file.model.js";
 import mongoose from 'mongoose';
 import { badRequest, success, unknownError } from "../formatters/globalResponse.js";
 import {
@@ -275,6 +275,9 @@ export {
 
 
 // 🔁 Detect category from mimetype
+
+
+// 🔁 Mimetype se category detect
 const getCategoryFromMimetype = (mimetype) => {
   if (!mimetype) return "other";
   if (mimetype.startsWith("video")) return "video";
@@ -288,16 +291,16 @@ const getCategoryFromMimetype = (mimetype) => {
   return "other";
 };
 
-// ✅ GET /v1/files/top-summary?parentId=optional
-export const getFolderData = async (req, res) => {
+// 🧠 Top summary controller
+export const getFolderData= async (req, res) => {
   try {
     const { parentId } = req.query;
 
     const filter = parentId
-      ? { parentId: new mongoose.Types.ObjectId(parentId) }
-      : { parentId: null };
+      ? { parentId: new mongoose.Types.ObjectId(parentId), type: "file" }
+      : { type: "file" };
 
-    const files = await File.find(filter);
+    const files = await Folder.find(filter);
 
     const categories = {
       video: { count: 0, size: 0 },
@@ -311,18 +314,12 @@ export const getFolderData = async (req, res) => {
     let totalUsed = 0;
 
     files.forEach(file => {
-      const size = file.sizeInBytes || file.size || 0;
+      const size = file.size || 0;
       totalUsed += size;
 
       const category = getCategoryFromMimetype(file.mimetype);
-
-      if (categories[category]) {
-        categories[category].count++;
-        categories[category].size += size;
-      } else {
-        categories.other.count++;
-        categories.other.size += size;
-      }
+      categories[category].count++;
+      categories[category].size += size;
     });
 
     const formatSize = (bytes) => (bytes / 1024 / 1024).toFixed(2); // MB
@@ -337,7 +334,7 @@ export const getFolderData = async (req, res) => {
       ])
     );
 
-    const quotaMB = 1024 * 30;
+    const quotaMB = 1024 * 30; // 30 GB
     const percentUsed = ((totalUsed / (1024 * 1024)) / quotaMB * 100).toFixed(2);
 
     res.status(200).json({
@@ -345,13 +342,14 @@ export const getFolderData = async (req, res) => {
       stats: formatted,
       totalUsedMB: formatSize(totalUsed),
       quotaMB,
-      percentUsed: `${percentUsed}%`
+      percentUsed: `${percentUsed}%`,
     });
   } catch (err) {
     console.error("Summary Error:", err);
     res.status(500).json({ message: "Error in summary", err });
   }
 };
+
 
 
 
