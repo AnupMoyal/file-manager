@@ -1,111 +1,3 @@
-
-// import {createFolder, uploadFile, advancedSearch } from '../services/filemanager.services.js';
-
-// // ✅ Create a new file or folder
-// export const createFolderOrFile = async (req, res) => {
-//   try {
-//     const data = req.body;
-//     const newFolder = new Folder(data);
-//     await newFolder.save();
-//     res.status(201).json({ success: true, message: 'Created successfully', data: newFolder });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: 'Error creating folder or file', error: err.message });
-//   }
-// };
-
-// // ✅ Get all active folders/files for an organization (optionally by parentId)
-// export const getAllFolders = async (req, res) => {
-//   try {
-//     const { organizationId, parentId = null } = req.query;
-
-//     const query = {
-//       organizationId,
-//       parentId,
-//       status: 'active'
-//     };
-
-//     const folders = await Folder.find(query).sort({ type: 1, name: 1 }); // Folders first, then files
-//     res.json({ success: true, data: folders });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: 'Error fetching folders', error: err.message });
-//   }
-// };
-
-// // ✅ Recursive function to get all nested subfolders/files
-// export const getFolderTreeRecursive = async (req, res) => {
-//   try {
-//     const { organizationId, parentId = null } = req.query;
-
-//     async function fetchTree(organizationId, parentId) {
-//       const items = await Folder.find({ organizationId, parentId, status: 'active' });
-
-//       const result = await Promise.all(items.map(async (item) => {
-//         if (item.type === 'folder') {
-//           const children = await fetchTree(organizationId, item._id);
-//           return { ...item.toObject(), children };
-//         } else {
-//           return item;
-//         }
-//       }));
-
-//       return result;
-//     }
-
-//     const tree = await fetchTree(organizationId, parentId);
-//     res.json({ success: true, data: tree });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: 'Error fetching folder tree', error: err.message });
-//   }
-// };
-
-// // ✅ Delete (soft delete = status to deleted and set deletedAt)
-// export const deleteFolderOrFile = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const updated = await Folder.findByIdAndUpdate(id, {
-//       status: 'deleted',
-//       deletedAt: new Date()
-//     }, { new: true });
-
-//     if (!updated) return res.status(404).json({ success: false, message: 'Not found' });
-
-//     res.json({ success: true, message: 'Item moved to deleted status', data: updated });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: 'Error deleting item', error: err.message });
-//   }
-// };
-
-// // ✅ Permanently delete (use with caution)
-// export const hardDelete = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const deleted = await Folder.findByIdAndDelete(id);
-//     if (!deleted) return res.status(404).json({ success: false, message: 'Item not found' });
-
-//     res.json({ success: true, message: 'Item permanently deleted' });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: 'Error deleting item', error: err.message });
-//   }
-// };
-
-// // ✅ Update folder or file
-// export const updateFolderOrFile = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const updated = await Folder.findByIdAndUpdate(id, req.body, { new: true });
-//     if (!updated) return res.status(404).json({ success: false, message: 'Item not found' });
-
-//     res.json({ success: true, message: 'Item updated', data: updated });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: 'Error updating item', error: err.message });
-//   }
-// };
-
-
-
-
-
 import { Folder } from '../models/folder.model.js';
 
 import mongoose from 'mongoose';
@@ -149,24 +41,74 @@ async function createNewFolder(req, res) {
 }
 
 
-async function uploadSingleFile(req, res) {
+// async function uploadSingleFile(req, res) {
+//   try {
+//     const { path, candidateId } = req.body;
+//     // if (!candidateId) {
+//     //   return badRequest(res, 'candidateId is required');
+//     // }
+//     if (!path ) {
+//       return badRequest(res, 'Folder path is required');
+//     }
+//     if (!req.file) {
+//       return badRequest(res, 'File is required');
+//     }
+//     const result = await uploadFile(req.file, path || '', req);
+//     return result.status ? success(res, result.message, result.data) : badRequest(res, result.message);
+//   } catch (error) {
+//     return unknownError(res, error);
+//   }
+// }
+
+
+//uplode single and multiple file 
+
+
+
+// ✅ Controller: Handles both single & multiple file uploads
+export async function uploadFileHandler(req, res) {
   try {
-    const { path, candidateId } = req.body;
-    // if (!candidateId) {
-    //   return badRequest(res, 'candidateId is required');
-    // }
-    if (!path ) {
-      return badRequest(res, 'Folder path is required');
+    const { path } = req.body;
+
+    // 🔐 Validate required input
+    if (!path) {
+      return badRequest(res, "Folder path is required");
     }
-    if (!req.file) {
-      return badRequest(res, 'File is required');
+
+    // 📦 Handle single (req.file) or multiple (req.files) files
+    const files = req.files || (req.file ? [req.file] : []);
+
+    if (files.length === 0) {
+      return badRequest(res, "At least one file is required");
     }
-    const result = await uploadFile(req.file, path || '', req);
-    return result.status ? success(res, result.message, result.data) : badRequest(res, result.message);
+
+    const uploadedResults = [];
+
+    for (const file of files) {
+      const result = await uploadFile(file, path, req); // 🔁 Use service function for each file
+
+      if (!result.status) {
+        uploadedResults.push({
+          fileName: file.originalname,
+          success: false,
+          message: result.message,
+        });
+      } else {
+        uploadedResults.push({
+          fileName: file.originalname,
+          success: true,
+          data: result.data,
+        });
+      }
+    }
+
+    return success(res, "File(s) uploaded", uploadedResults);
   } catch (error) {
     return unknownError(res, error);
   }
 }
+
+
 
 // Search for files and folders (simple)
 
@@ -260,7 +202,7 @@ async function advancedFileSearch(req, res) {
 export {
   getFileSystem,
   createNewFolder,
-  uploadSingleFile,
+  
   advancedFileSearch,
  
 };
@@ -271,10 +213,9 @@ export {
 
 
 // ✅ GET /v1/files/folder-data
-// NEW FUNCTION for TOP SUMMARY — ignore folder filtering
 
 
-// 🔁 Detect category from mimetype
+
 
 
 // 🔁 Mimetype se category detect
@@ -355,31 +296,7 @@ export const getFolderData = async (req, res) => {
     console.error("🔥 Summary Error:", err);
     res.status(500).json({ message: "Error in summary", err });
   }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ };
 // ✅ GET /v1/files/recent-activity
 export const getRecentActivity = async (req, res) => {
   try {

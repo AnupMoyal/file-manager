@@ -209,19 +209,100 @@ export async function createFolder(folderPath, req) {
   }
 }
 
-export async function uploadFile(file, destinationPath = "", req) {
-  try {
+// export async function uploadFile(file, destinationPath = "", req) {
+//   try {
 
-    const parentId = req.body.parentId || null;
+//     const parentId = req.body.parentId || null;
 
     
 
+//     if (!file) {
+//       return { status: false, message: "File is required" };
+//     }
+
+//     const bucket = process.env.PATH_BUCKET;
+
+//     if (!bucket) {
+//       return { status: false, message: "No Bucket Found" };
+//     }
+
+//     const client = getSpacesClient();
+//     const originalName = file.originalname;
+//     const extension = path.extname(originalName);
+//     const fileName = path.basename(originalName, extension);
+//     const timestamp = Date.now();
+
+//     let key = destinationPath;
+//     if (key && !key.endsWith("/")) key += "/";
+//     key += `${fileName}_${timestamp}${extension}`;
+
+//     const upload = new Upload({
+//       client,
+//       params: {
+//         Bucket: bucket,
+//         Key: key,
+//         Body: file.buffer,
+//         ContentType: file.mimetype,
+//         ACL: "public-read", // <-- Change this if public URL is expected
+//       },
+//     });
+
+//     const result = await upload.done();
+//     console.log("Upload result:", result);
+
+//     const fileDoc = new Folder({
+   
+//       parentId,
+//       name: originalName,
+//       type: "file",
+//       key: key,
+//       location: `https://${process.env.SPACES_ENDPOINT}/${bucket}/${key}`, // or result.Location
+//       size: file.size,
+//       mimetype: file.mimetype,
+//       extension: extension,
+//       openedAt: null,
+//     });
+
+//     await fileDoc.save();
+
+//     await RecentActivity.create({
+//       fileId: fileDoc._id,
+    
+//       action: "upload",
+//       at: new Date(),
+//     });
+
+//     return {
+//       status: true,
+//       message: "File uploaded successfully",
+//       data: {
+//         key: result.Key,
+//         location: fileDoc.location,
+//         etag: result.ETag,
+//         size: file.size,
+//         mimetype: file.mimetype,
+//         originalName: file.originalname,
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Upload error:", error);
+//     return { status: false, message: error.message };
+//   }
+// }
+
+
+//new code single and multiple files
+export async function uploadFile(file, destinationPath = "", req) {
+  try {
+    // ✅ Optional: parentId support from req.body
+    const parentId = req.body.parentId || null;
+
+    // ✅ Basic validation
     if (!file) {
       return { status: false, message: "File is required" };
     }
 
     const bucket = process.env.PATH_BUCKET;
-
     if (!bucket) {
       return { status: false, message: "No Bucket Found" };
     }
@@ -232,10 +313,12 @@ export async function uploadFile(file, destinationPath = "", req) {
     const fileName = path.basename(originalName, extension);
     const timestamp = Date.now();
 
+    // ✅ Generate S3 key
     let key = destinationPath;
     if (key && !key.endsWith("/")) key += "/";
     key += `${fileName}_${timestamp}${extension}`;
 
+    // ✅ Upload to DigitalOcean Spaces / S3
     const upload = new Upload({
       client,
       params: {
@@ -243,20 +326,20 @@ export async function uploadFile(file, destinationPath = "", req) {
         Key: key,
         Body: file.buffer,
         ContentType: file.mimetype,
-        ACL: "public-read", // <-- Change this if public URL is expected
+        ACL: "public-read", // public file access
       },
     });
 
     const result = await upload.done();
     console.log("Upload result:", result);
 
+    // ✅ Save metadata to MongoDB
     const fileDoc = new Folder({
-   
       parentId,
       name: originalName,
       type: "file",
       key: key,
-      location: `https://${process.env.SPACES_ENDPOINT}/${bucket}/${key}`, // or result.Location
+      location: `https://${process.env.SPACES_ENDPOINT}/${bucket}/${key}`,
       size: file.size,
       mimetype: file.mimetype,
       extension: extension,
@@ -265,13 +348,14 @@ export async function uploadFile(file, destinationPath = "", req) {
 
     await fileDoc.save();
 
+    // ✅ Log recent activity
     await RecentActivity.create({
       fileId: fileDoc._id,
-    
       action: "upload",
       at: new Date(),
     });
 
+    // ✅ Return response
     return {
       status: true,
       message: "File uploaded successfully",
@@ -289,6 +373,8 @@ export async function uploadFile(file, destinationPath = "", req) {
     return { status: false, message: error.message };
   }
 }
+
+
 
 export async function advancedSearch(options, req) {
   try {
