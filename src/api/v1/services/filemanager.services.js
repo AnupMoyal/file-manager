@@ -313,8 +313,8 @@ export async function uploadFile(file, destinationPath = "", req) {
     const fileName = path.basename(originalName, extension);
     const timestamp = Date.now();
 
-    // ✅ Generate S3 key
-    let key = destinationPath;
+    // ✅ Generate S3 key safely
+    let key = typeof destinationPath === "string" ? destinationPath : "";
     if (key && !key.endsWith("/")) key += "/";
     key += `${fileName}_${timestamp}${extension}`;
 
